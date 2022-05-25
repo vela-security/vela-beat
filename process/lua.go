@@ -79,8 +79,23 @@ done:
 }
 
 func snapshotL(L *lua.LState) int {
+	snt := newSnapshot(L)
+	if snt == nil {
+		L.RaiseError("new process snapshot fail")
+		return 0
+	}
 
-	return 0
+	proc := L.NewProc(snt.Name(), snt.Type())
+	if proc.IsNil() {
+		proc.Set(snt)
+	} else {
+		old := proc.Data.(*snapshot)
+		old.Close()
+		proc.Set(snt)
+	}
+
+	L.Push(proc)
+	return 1
 }
 
 /*
@@ -112,4 +127,7 @@ func WithEnv(env assert.Environment) {
 	kv.Set("ppid", lua.NewFunction(ppidL))
 	kv.Set("snapshot", lua.NewFunction(snapshotL))
 	env.Set("ps", kv)
+
+	//注册加解密
+	xEnv.Mime(simple{}, encode, decode)
 }

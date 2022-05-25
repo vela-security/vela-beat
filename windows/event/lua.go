@@ -36,6 +36,11 @@ func (wv *winEv) toL(L *lua.LState) int {
 	return 0
 }
 
+func (wv *winEv) startL(L *lua.LState) int {
+	xEnv.Start(L, wv).From(L.CodeVM()).Do()
+	return 0
+}
+
 func (wv *winEv) Index(L *lua.LState, key string) lua.LValue {
 
 	switch key {
@@ -47,6 +52,9 @@ func (wv *winEv) Index(L *lua.LState, key string) lua.LValue {
 
 	case "to":
 		return L.NewFunction(wv.toL)
+
+	case "start":
+		return L.NewFunction(wv.startL)
 
 	default:
 		//todo
@@ -75,5 +83,5 @@ func constructor(L *lua.LState) int {
 
 func Inject(env assert.Environment, ukv lua.UserKV) {
 	xEnv = env
-	ukv.Set("vela-event", lua.NewFunction(constructor))
+	ukv.Set("event", lua.NewFunction(constructor))
 }

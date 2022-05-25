@@ -5,9 +5,12 @@ import (
 	"strings"
 )
 
-func (proc *Process) ToLValue() lua.LValue {
-	return lua.NewAnyData(proc)
-}
+func (proc *Process) String() string                         { return lua.B2S(proc.Byte()) }
+func (proc *Process) Type() lua.LValueType                   { return lua.LTObject }
+func (proc *Process) AssertFloat64() (float64, bool)         { return 0, false }
+func (proc *Process) AssertString() (string, bool)           { return "", false }
+func (proc *Process) AssertFunction() (*lua.LFunction, bool) { return nil, false }
+func (proc *Process) Peek() lua.LValue                       { return proc }
 
 func (proc *Process) Index(L *lua.LState, key string) lua.LValue {
 	switch key {

@@ -3,6 +3,8 @@ package process
 import (
 	"github.com/elastic/gosigar"
 	"github.com/vela-security/vela-public/grep"
+	"github.com/vela-security/vela-public/kind"
+	"strings"
 )
 
 type Process struct {
@@ -32,6 +34,35 @@ type Process struct {
 	Share    uint64  `json:"share"`
 
 	err error
+}
+
+func (proc *Process) Byte() []byte {
+	enc := kind.NewJsonEncoder()
+	enc.Tab("")
+	enc.KV("name", proc.Name)
+	enc.KV("state", proc.State)
+	enc.KV("pid", proc.Pid)
+	enc.KV("ppid", proc.Ppid)
+	enc.KV("pgid", proc.Pgid)
+	enc.KV("cmdline", proc.Cmdline)
+	enc.KV("username", proc.Username)
+	enc.KV("cwd", proc.Cwd)
+	enc.KV("executable", proc.Executable)
+	enc.KV("args", strings.Join(proc.Args, " "))
+
+	enc.KV("user_ticks", proc.UserTicks)
+	enc.KV("total_pct", proc.TotalPct)
+	enc.KV("total_norm_pct", proc.TotalNormPct)
+	enc.KV("system_ticks", proc.SystemTicks)
+	enc.KV("total_ticks", proc.TotalTicks)
+	enc.KV("start_time", proc.StartTime)
+
+	enc.KV("mem_size", proc.MemSize)
+	enc.KV("rss_bytes", proc.RssBytes)
+	enc.KV("rss_pct", proc.RssPct)
+	enc.KV("share", proc.Share)
+	enc.End("}")
+	return enc.Bytes()
 }
 
 func state(b byte) string {

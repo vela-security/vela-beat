@@ -28,6 +28,7 @@ func def() *config {
 	return &config{
 		pipe:   pipe.New(pipe.Env(xEnv)),
 		chains: lua.NewUserKV(),
+		bkt:    []string{winEvBucketOffset},
 	}
 }
 

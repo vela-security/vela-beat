@@ -24,6 +24,16 @@ func (sum *summary) List() []int {
 	return sum.Sigar.List
 }
 
+func (sum *summary) Map() map[int]bool {
+	n := len(sum.Sigar.List)
+	tab := make(map[int]bool, n)
+	for i := 0; i < n; i++ {
+		pid := sum.Sigar.List[i]
+		tab[pid] = true
+	}
+	return tab
+}
+
 func (sum *summary) append(pv *Process) {
 	switch pv.State {
 	case "sleeping":
