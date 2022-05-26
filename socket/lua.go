@@ -8,6 +8,16 @@ import (
 
 var xEnv assert.Environment
 
+func pidL(L *lua.LState) int {
+	pid := L.CheckInt(1)
+	sum := &summary{}
+	sum.all(func(s *Socket) bool {
+		return s.Pid == uint32(pid)
+	})
+	L.PushAny(sum)
+	return 1
+}
+
 func tcpL(L *lua.LState) int {
 	sum := &summary{}
 	sum.tcp(fuzzy(grep.New(L.IsString(1))))
@@ -87,6 +97,7 @@ func notL(L *lua.LState) int {
 func WithEnv(env assert.Environment) {
 	xEnv = env
 	kv := lua.NewUserKV()
+	kv.Set("pid", lua.NewFunction(pidL))
 	kv.Set("all", lua.NewFunction(allL))
 	kv.Set("tcp", lua.NewFunction(tcpL))
 	kv.Set("udp", lua.NewFunction(udpL))

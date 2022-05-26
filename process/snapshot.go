@@ -23,9 +23,10 @@ var (
 type snapshot struct {
 	lua.ProcEx
 	co       *lua.LState
+	onCreate *pipe.Px
 	onDelete *pipe.Px
 	onUpdate *pipe.Px
-	tk       time.Ticker
+	tk       *time.Ticker
 	bkt      []string
 	current  map[int]bool
 	delete   map[string]interface{}
@@ -33,23 +34,28 @@ type snapshot struct {
 }
 
 func newSnapshot(L *lua.LState) *snapshot {
-	sum := &summary{}
-	if sum.init(); !sum.ok() {
-		return nil
-	}
-
 	snt := &snapshot{
 		bkt:      []string{"vela", "process", "snapshot"},
 		co:       xEnv.Clone(L),
+		onCreate: pipe.New(pipe.Env(xEnv)),
 		onDelete: pipe.New(pipe.Env(xEnv)),
 		onUpdate: pipe.New(pipe.Env(xEnv)),
-		current:  sum.Map(),
-		update:   make(map[string]interface{}, 128),
-		delete:   make(map[string]interface{}, 128),
 	}
 	snt.V(lua.PTInit)
 
 	return snt
+}
+
+func (snt *snapshot) reset() bool {
+	sum := &summary{}
+	if sum.init(); !sum.ok() {
+		return false
+	}
+
+	snt.current = sum.Map()
+	snt.update = make(map[string]interface{}, 128)
+	snt.delete = make(map[string]interface{}, 128)
+	return true
 }
 
 func (snt *snapshot) Name() string {
@@ -65,20 +71,23 @@ func (snt *snapshot) Start() error {
 }
 
 func (snt *snapshot) Close() error {
+	if snt.tk != nil {
+		snt.tk.Stop()
+	}
 	return nil
 }
 
 func (snt *snapshot) diff(key string, v interface{}) {
 	pid, err := auxlib.ToIntE(key)
 	if err != nil {
-		xEnv.Errorf("got invalid pid %v", err)
+		xEnv.Infof("got invalid pid %v", err)
 		snt.delete[key] = v
 		return
 	}
 
 	old, ok := v.(*simple)
 	if !ok {
-		xEnv.Errorf("invalid process simple %v", v)
+		xEnv.Infof("invalid process simple %v", v)
 		snt.delete[key] = v
 		return
 	}
@@ -92,7 +101,7 @@ func (snt *snapshot) diff(key string, v interface{}) {
 	sim := simple{}
 	err = sim.by(pid)
 	if err != nil {
-		xEnv.Errorf("not found pid:%d process", pid)
+		xEnv.Errorf("not found pid:%d process %v", pid, err)
 		snt.delete[key] = v
 		return
 	}
@@ -102,14 +111,19 @@ func (snt *snapshot) diff(key string, v interface{}) {
 	}
 }
 
-func (snt *snapshot) sync() {
+func (snt *snapshot) Create(bkt assert.Bucket) {
 	for pid, _ := range snt.current {
 		sim := &simple{}
 		if err := sim.by(pid); err != nil {
-			xEnv.Errorf("not found pid:%d process %v", pid, err)
+			xEnv.Infof("not found pid:%d process %v", pid, err)
 			continue
 		}
-		snt.update[auxlib.ToString(pid)] = sim
+
+		key := auxlib.ToString(pid)
+		bkt.Store(key, sim, 0)
+		snt.onCreate.Do(sim, snt.co, func(err error) {
+			audit.Errorf("%s process snapshot create fail %v", snt.Name(), err).From(snt.co.CodeVM()).Put()
+		})
 	}
 }
 
@@ -132,9 +146,14 @@ func (snt *snapshot) Update(bkt assert.Bucket) {
 }
 
 func (snt *snapshot) run() {
+	if !snt.reset() {
+		audit.Errorf("%s process reset snapshot fail", snt.Name()).From(snt.co.CodeVM()).Put()
+		return
+	}
+
 	bkt := xEnv.Bucket(snt.bkt...)
 	bkt.Range(snt.diff)
-	snt.sync()
+	snt.Create(bkt)
 	snt.Delete(bkt)
 	snt.Update(bkt)
 }

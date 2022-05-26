@@ -19,28 +19,28 @@ type Socket struct {
 	Username   string `json:"username"`
 }
 
-func (s *Socket) Marshal(enc *kind.JsonEncoder) {
+func (sock *Socket) Marshal(enc *kind.JsonEncoder) {
 	enc.Tab("")
 
-	enc.KV("state", s.State)
-	enc.KV("local_ip", s.LocalIP)
-	enc.KV("local_port", s.LocalPort)
-	enc.KV("remote_ip", s.RemoteIP)
-	enc.KV("remote_port", s.RemotePort)
-	enc.KV("pid", s.Pid)
-	enc.KV("process_name", s.Process)
-	enc.KV("user_name", s.Username)
+	enc.KV("state", sock.State)
+	enc.KV("local_ip", sock.LocalIP)
+	enc.KV("local_port", sock.LocalPort)
+	enc.KV("remote_ip", sock.RemoteIP)
+	enc.KV("remote_port", sock.RemotePort)
+	enc.KV("pid", sock.Pid)
+	enc.KV("process_name", sock.Process)
+	enc.KV("user_name", sock.Username)
 
 	enc.End("},")
 }
 
-func (s *Socket) Byte() []byte {
+func (sock *Socket) Byte() []byte {
 	buf := kind.NewJsonEncoder()
-	s.Marshal(buf)
+	sock.Marshal(buf)
 	buf.End("")
 	return buf.Bytes()
 }
 
-func (s *Socket) String() string {
-	return lua.B2S(s.Byte())
+func (sock *Socket) String() string {
+	return lua.B2S(sock.Byte())
 }

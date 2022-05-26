@@ -1,7 +1,6 @@
 package process
 
 import (
-	"github.com/elastic/gosigar"
 	"github.com/vela-security/vela-public/grep"
 	"github.com/vela-security/vela-public/kind"
 	"strings"
@@ -82,29 +81,9 @@ func state(b byte) string {
 }
 
 func Pid(pid int) (*Process, error) {
-	var err error
-
-	st := gosigar.ProcState{}
-	err = st.Get(pid)
-	if err != nil {
-		return nil, err
-	}
-
-	proc := &Process{
-		Name:     st.Name,
-		State:    state(byte(st.State)),
-		Pid:      pid,
-		Ppid:     st.Ppid,
-		Pgid:     uint32(st.Pgid),
-		Username: st.Username,
-	}
-
-	exe := gosigar.ProcExe{}
-	_ = exe.Get(pid)
-	proc.Cwd = exe.Cwd
-	proc.Executable = exe.Name
-
-	return proc, nil
+	proc := &Process{Pid: pid}
+	err := proc.Lookup()
+	return proc, err
 }
 
 func Name(pattern string) *summary {
