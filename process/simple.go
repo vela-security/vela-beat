@@ -58,6 +58,14 @@ func (s *simple) Equal(old *simple) bool {
 	return s.binary() == old.binary()
 }
 
+func (s *simple) exe() string {
+	if s.Executable != "" {
+		return s.Executable
+	}
+
+	return ""
+}
+
 func encode(v interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)

@@ -51,7 +51,7 @@ func (s *simple) Index(L *lua.LState, key string) lua.LValue {
 	case "cwd":
 		return lua.S2L(s.Cwd)
 	case "executable":
-		return lua.S2L(s.Executable)
+		return lua.S2L(s.exe())
 	case "args":
 		return lua.S2L(strings.Join(s.Args, " "))
 

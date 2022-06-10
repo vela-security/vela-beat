@@ -115,7 +115,7 @@ func (snt *snapshot) Create(bkt assert.Bucket) {
 	for pid, _ := range snt.current {
 		sim := &simple{}
 		if err := sim.by(pid); err != nil {
-			xEnv.Infof("not found pid:%d process %v", pid, err)
+			//xEnv.Infof("not found pid:%d process %v", pid, err)
 			continue
 		}
 
