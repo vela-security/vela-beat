@@ -1,7 +1,6 @@
 package beat
 
 import (
-	"github.com/vela-security/vela-public/assert"
 	"github.com/vela-security/vela-beat/cpu"
 	"github.com/vela-security/vela-beat/disk"
 	"github.com/vela-security/vela-beat/host"
@@ -10,6 +9,8 @@ import (
 	"github.com/vela-security/vela-beat/process"
 	"github.com/vela-security/vela-beat/service"
 	"github.com/vela-security/vela-beat/socket"
+	"github.com/vela-security/vela-beat/track"
+	"github.com/vela-security/vela-public/assert"
 )
 
 func WithEnv(env assert.Environment) {
@@ -22,4 +23,5 @@ func WithEnv(env assert.Environment) {
 	socket.WithEnv(env)
 	ifconfig.WithEnv(env)
 	service.WithEnv(env)
+	track.WithEnv(env)
 }

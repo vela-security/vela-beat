@@ -19,7 +19,7 @@ func (nt *notify) pipeL(L *lua.LState) int {
 }
 
 func (nt *notify) startL(L *lua.LState) int {
-	xEnv.Start(L, nt).Code(nt.Code()).Do()
+	xEnv.Start(L, nt).From(nt.Code()).Do()
 	return 0
 }
 

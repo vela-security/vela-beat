@@ -86,6 +86,12 @@ func Pid(pid int) (*Process, error) {
 	return proc, err
 }
 
+func List() []int {
+	sum := &summary{}
+	sum.init()
+	return sum.List()
+}
+
 func Name(pattern string) *summary {
 	sum := &summary{}
 	sum.name(grep.New(pattern))

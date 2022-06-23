@@ -24,12 +24,21 @@ func (sum *summary) List() []int {
 	return sum.Sigar.List
 }
 
-func (sum *summary) Map() map[int]bool {
+func (sum *summary) Map() map[int]*Process {
+	if n := len(sum.Process); n != 0 {
+		tab := make(map[int]*Process, n)
+		for i := 0; i < n; i++ {
+			tab[i] = sum.Process[i]
+		}
+		return tab
+	}
+
 	n := len(sum.Sigar.List)
-	tab := make(map[int]bool, n)
+	p := &Process{Pid: -1}
+	tab := make(map[int]*Process, n)
 	for i := 0; i < n; i++ {
 		pid := sum.Sigar.List[i]
-		tab[pid] = true
+		tab[pid] = p
 	}
 	return tab
 }

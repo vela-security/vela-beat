@@ -2,7 +2,6 @@ package dns
 
 import (
 	"github.com/miekg/dns"
-	"github.com/vela-security/pivot/node"
 	"github.com/vela-security/vela-public/assert"
 	"github.com/vela-security/vela-public/auxlib"
 	"github.com/vela-security/vela-public/buffer"
@@ -406,8 +405,8 @@ func (tx *Tx) String() string {
 	enc := kind.NewJsonEncoder()
 
 	enc.Tab("")
-	enc.KV("ID", node.ID())
-	enc.KV("inet", node.LoadAddr())
+	enc.KV("ID", xEnv.ID())
+	enc.KV("inet", xEnv.Inet())
 	enc.KV("remote", tx.Remote())
 	enc.KV("region", tx.region.Byte())
 	enc.KV("host", tx.host)

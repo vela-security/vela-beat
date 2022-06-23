@@ -15,7 +15,7 @@ type SID struct {
 
 // String returns string representation of SID.
 func (a SID) String() string {
-	return fmt.Sprintf("SID Identifier[%s] Name[%s] Domain[%s] Type[%s]",
+	return fmt.Sprintf("SID Identifier[%s] Name[%s] Domain[%s] Typ[%s]",
 		a.Identifier, a.Name, a.Domain, a.Type)
 }
 

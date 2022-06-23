@@ -1,18 +1,38 @@
 package process
 
 import (
+	"fmt"
 	audit "github.com/vela-security/vela-audit"
 	"github.com/vela-security/vela-public/assert"
 	"github.com/vela-security/vela-public/auxlib"
 	"github.com/vela-security/vela-public/lua"
 	"github.com/vela-security/vela-public/pipe"
 	"reflect"
+	"sync/atomic"
 	"time"
 )
 
 var (
 	snapshotTypeof = reflect.TypeOf((*snapshot)(nil)).String()
 )
+
+const (
+	SYNC Model = iota + 1
+	WORK
+)
+
+type Model uint8
+
+func (m Model) String() string {
+	switch m {
+	case SYNC:
+		return "sync"
+	case WORK:
+		return "work"
+	default:
+		return ""
+	}
+}
 
 /*
 	664    {"name": "123" , "cwd": "123"}
@@ -22,19 +42,33 @@ var (
 
 type snapshot struct {
 	lua.ProcEx
+	state    uint32
+	flag     Model
 	co       *lua.LState
 	onCreate *pipe.Px
 	onDelete *pipe.Px
 	onUpdate *pipe.Px
-	tk       *time.Ticker
-	bkt      []string
-	current  map[int]bool
-	delete   map[string]interface{}
-	update   map[string]interface{}
+	by       func(int) (*Process, error)
+	store    func(assert.Bucket)
+
+	tk      *time.Ticker
+	bkt     []string
+	current map[int]*Process
+	delete  map[string]interface{}
+	update  map[string]*Process
+	report  *report
+
+	//report enable
+	enable bool
+
+	//report opcode
+	opcode int
 }
 
 func newSnapshot(L *lua.LState) *snapshot {
 	snt := &snapshot{
+		state:    0, //init
+		enable:   L.IsTrue(1),
 		bkt:      []string{"vela", "process", "snapshot"},
 		co:       xEnv.Clone(L),
 		onCreate: pipe.New(pipe.Env(xEnv)),
@@ -46,16 +80,82 @@ func newSnapshot(L *lua.LState) *snapshot {
 	return snt
 }
 
-func (snt *snapshot) reset() bool {
+func (snt *snapshot) reset() {
+	snt.update = nil
+	snt.delete = nil
+	snt.report = nil
+	snt.current = nil
+	snt.flag = 0
+}
+
+func (snt *snapshot) withProcess(ps []*Process) {
+	n := len(ps)
+	if n == 0 {
+		return
+	}
+
+	if e := xEnv.TnlSend(assert.OpProcessSnapshot, ps); e != nil {
+		xEnv.Errorf("process snapshot sync push fail %v", e)
+	}
+
+	//map fast match
+	snt.current = make(map[int]*Process, n)
+	for i := 0; i < n; i++ {
+		p := ps[i]
+		snt.current[p.Pid] = p
+	}
+
+	//by pid find proc
+	snt.by = func(pid int) (*Process, error) {
+		proc, ok := snt.current[pid]
+		if ok {
+			delete(snt.current, pid)
+			return proc, nil
+		}
+		return nil, fmt.Errorf("not found %d process", pid)
+	}
+
+}
+
+func (snt *snapshot) withList(list []int) {
+	n := len(list)
+	p := &Process{Pid: -1}
+	snt.current = make(map[int]*Process, n)
+	for i := 0; i < n; i++ {
+		pid := list[i]
+		snt.current[pid] = p
+	}
+
+	snt.by = func(pid int) (*Process, error) {
+		delete(snt.current, pid)
+		return Pid(pid)
+	}
+}
+
+func (snt *snapshot) constructor(flag Model) bool {
+	snt.flag = flag
+	snt.update = make(map[string]*Process, 128)
+	snt.delete = make(map[string]interface{}, 128)
+	snt.report = &report{}
+
 	sum := &summary{}
 	if sum.init(); !sum.ok() {
 		return false
 	}
 
-	snt.current = sum.Map()
-	snt.update = make(map[string]interface{}, 128)
-	snt.delete = make(map[string]interface{}, 128)
-	return true
+	switch flag {
+	case SYNC:
+		sum.view(func(_ *Process) bool { return true })
+		snt.withProcess(sum.Process)
+		return true
+
+	case WORK:
+		snt.withList(sum.List())
+		return true
+
+	default:
+		return false
+	}
 }
 
 func (snt *snapshot) Name() string {
@@ -82,6 +182,7 @@ func (snt *snapshot) diff(key string, v interface{}) {
 	if err != nil {
 		xEnv.Infof("got invalid pid %v", err)
 		snt.delete[key] = v
+		snt.report.OnDelete(pid)
 		return
 	}
 
@@ -89,64 +190,48 @@ func (snt *snapshot) diff(key string, v interface{}) {
 	if !ok {
 		xEnv.Infof("invalid process simple %v", v)
 		snt.delete[key] = v
+		snt.report.OnDelete(pid)
 		return
 	}
 
-	if _, ok := snt.current[pid]; !ok {
+	if _, exist := snt.current[pid]; !exist {
 		snt.delete[key] = v
+		snt.report.OnDelete(pid)
 		return
 	}
-	delete(snt.current, pid)
-
-	sim := simple{}
-	err = sim.by(pid)
-	if err != nil {
+	p, er := snt.by(pid)
+	if er != nil {
 		xEnv.Errorf("not found pid:%d process %v", pid, err)
 		snt.delete[key] = v
+		snt.report.OnDelete(pid)
 		return
 	}
 
+	sim := &simple{}
+	sim.with(p)
 	if !sim.Equal(old) {
-		snt.update[key] = sim
+		snt.update[key] = p
+		snt.report.OnUpdate(p)
 	}
 }
 
-func (snt *snapshot) Create(bkt assert.Bucket) {
-	for pid, _ := range snt.current {
-		sim := &simple{}
-		if err := sim.by(pid); err != nil {
-			//xEnv.Infof("not found pid:%d process %v", pid, err)
-			continue
-		}
-
-		key := auxlib.ToString(pid)
-		bkt.Store(key, sim, 0)
-		snt.onCreate.Do(sim, snt.co, func(err error) {
-			audit.Errorf("%s process snapshot create fail %v", snt.Name(), err).From(snt.co.CodeVM()).Put()
-		})
-	}
+func (snt *snapshot) IsRun() bool {
+	return atomic.AddUint32(&snt.state, 1) > 1
 }
 
-func (snt *snapshot) Delete(bkt assert.Bucket) {
-	for pid, val := range snt.delete {
-		bkt.Delete(pid)
-		snt.onDelete.Do(val, snt.co, func(err error) {
-			audit.Errorf("%s process snapshot delete fail %v", snt.Name(), err).From(snt.co.CodeVM()).Put()
-		})
-	}
-}
-
-func (snt *snapshot) Update(bkt assert.Bucket) {
-	for pid, val := range snt.update {
-		bkt.Store(pid, val, 0)
-		snt.onUpdate.Do(val, snt.co, func(err error) {
-			audit.Errorf("%s process snapshot update fail %v", snt.Name(), err).From(snt.co.CodeVM()).Put()
-		})
-	}
+func (snt *snapshot) End() {
+	atomic.StoreUint32(&snt.state, 0)
 }
 
 func (snt *snapshot) run() {
-	if !snt.reset() {
+	if snt.IsRun() {
+		xEnv.Errorf("process running by %s", snt.flag.String())
+		return
+	}
+
+	defer snt.End()
+
+	if !snt.constructor(WORK) {
 		audit.Errorf("%s process reset snapshot fail", snt.Name()).From(snt.co.CodeVM()).Put()
 		return
 	}
@@ -156,4 +241,27 @@ func (snt *snapshot) run() {
 	snt.Create(bkt)
 	snt.Delete(bkt)
 	snt.Update(bkt)
+	snt.doReport()
+
+	snt.reset()
+}
+
+func (snt *snapshot) sync() {
+	if snt.IsRun() {
+		xEnv.Errorf("process running by %s", snt.flag.String())
+		return
+	}
+	defer snt.End()
+
+	if !snt.constructor(SYNC) {
+		audit.Errorf("%s process reset snapshot fail", snt.Name()).From(snt.co.CodeVM()).Put()
+		return
+	}
+
+	bkt := xEnv.Bucket(snt.bkt...)
+	bkt.Range(snt.diff)
+	snt.Create(bkt)
+	snt.Delete(bkt)
+	snt.Update(bkt)
+	snt.reset()
 }

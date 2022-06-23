@@ -60,15 +60,24 @@ func (snt *snapshot) pollL(L *lua.LState) int {
 	return 0
 }
 
+func (snt *snapshot) reportL(L *lua.LState) int {
+	snt.enable = true
+	return 0
+}
+
+func (snt *snapshot) syncL(L *lua.LState) int {
+	snt.sync()
+	return 0
+}
+
 func (snt *snapshot) Index(L *lua.LState, key string) lua.LValue {
 	switch key {
 	case "run":
 		return lua.NewFunction(snt.runL)
 	case "poll":
 		return lua.NewFunction(snt.pollL)
-	case "bucket":
-		return lua.NewFunction(snt.bucketL)
-
+	case "sync":
+		return lua.NewFunction(snt.syncL)
 	case "on_create":
 		return lua.NewFunction(snt.createL)
 	case "on_delete":

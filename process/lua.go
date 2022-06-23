@@ -110,8 +110,12 @@ func snapshotL(L *lua.LState) int {
 		p.ppid
 	end)
 
+
 	local p = rock.ps.pid(123)
 
+	local snap = rock.ps.snapshot()
+
+	snap.poll(5)
 */
 
 func WithEnv(env assert.Environment) {

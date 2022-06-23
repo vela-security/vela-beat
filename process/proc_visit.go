@@ -17,11 +17,15 @@ func (proc *Process) LookupState() error {
 	proc.Ppid = st.Ppid
 	proc.Pgid = uint32(st.Pgid)
 	proc.Username = st.Username
-
 	proc.LookupExec()
+
 	return nil
 }
 
 func (proc *Process) Lookup() error {
 	return proc.LookupState()
+}
+
+func (proc *Process) IsNull() bool {
+	return proc == nil || proc.Pid == -1
 }
