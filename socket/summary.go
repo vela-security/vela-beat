@@ -1,9 +1,7 @@
 package socket
 
 import (
-	"github.com/vela-security/vela-public/auxlib"
 	"github.com/vela-security/vela-public/kind"
-	"github.com/vela-security/vela-public/lua"
 )
 
 type summary struct {
@@ -24,34 +22,26 @@ type summary struct {
 	Err         error     `json:"-"`
 }
 
-func (sum *summary) ToLValue() lua.LValue {
-	return lua.NewAnyData(sum)
-}
-
-func (sum *summary) String() string {
-	return auxlib.B2S(sum.Byte())
-}
-
 func (sum *summary) append(s *Socket) {
 	switch s.State {
 
-	case "ESTABLISHED":
+	case "ESTAB":
 		sum.ESTABLISHED++
-	case "SYN_SENT":
+	case "SYN-SENT":
 		sum.SYN_SENT++
-	case "SYN_RCVD":
+	case "SYN-RCVD":
 		sum.SYN_RCVD++
-	case "FIN_WAIT1":
+	case "FIN-WAIT-1":
 		sum.FIN_WAIT1++
-	case "FIN_WAIT2":
+	case "FIN-WAIT-2":
 		sum.FIN_WAIT2++
-	case "TIME_WAIT":
+	case "TIME-WAIT":
 		sum.TIME_WAIT++
 	case "CLOSED":
 		sum.CLOSED++
-	case "CLOSE_WAIT":
+	case "CLOSE-WAIT":
 		sum.CLOSE_WAIT++
-	case "LAST_ACK":
+	case "LAST-ACK":
 		sum.LAST_ACK++
 	case "LISTEN":
 		sum.LISTEN++
@@ -88,8 +78,8 @@ func (sum *summary) Byte() []byte {
 	return buf.Bytes()
 }
 
-func (sum *summary) all(filter func(*Socket) bool) {
-	sum.tcp(filter)
-	sum.udp(filter)
-	sum.unix(filter)
-}
+//func (sum *summary) all(filter func(*Socket) bool) {
+//	sum.tcp(filter)
+//	sum.udp(filter)
+//	sum.unix(filter)
+//}

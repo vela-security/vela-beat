@@ -54,18 +54,18 @@ const (
 
 var skStates = [...]string{
 	"UNKNOWN",
-	"", // CLOSE
+	"CLOSED", // CLOSE
 	"LISTEN",
-	"SYN_SENT",
-	"SYN_RECV",
-	"ESTABLISHED",
-	"FIN_WAIT1",
-	"FIN_WAIT2",
-	"CLOSE_WAIT",
+	"SYN-SENT",
+	"SYN-RECV",
+	"ESTAB",
+	"FIN-WAIT-1",
+	"FIN-WAIT-2",
+	"CLOSE-WAIT",
 	"CLOSING",
-	"LAST_ACK",
-	"TIME_WAIT",
-	"DELETE_TCB",
+	"LAST-ACK",
+	"TIME-WAIT",
+	"DELETE-TCB",
 }
 
 func memToIPv4(p unsafe.Pointer) net.IP {
@@ -475,9 +475,9 @@ type winSockEnt interface {
 func toSocket(ws winSockEnt, snp ProcessSnapshot) *Socket {
 
 	sock := &Socket{
-		LocalIP: ws.LocalSock().IP.String(),
+		LocalIP:   ws.LocalSock().IP.String(),
 		LocalPort: int(ws.LocalSock().Port),
-		State: ws.SockState().String(),
+		State:     ws.SockState().String(),
 	}
 
 	if p := ws.Process(snp); p != nil {

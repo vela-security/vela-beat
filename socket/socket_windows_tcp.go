@@ -3,9 +3,12 @@
 
 package socket
 
-import "syscall"
+import (
+	cond "github.com/vela-security/vela-cond"
+	"syscall"
+)
 
-func (sum *summary) tcp4(filter func(*Socket) bool) {
+func (sum *summary) tcp4(cnd *cond.Cond) {
 	tbl, err := GetTCPTable2(true)
 	if err != nil {
 		sum.Err = err
@@ -24,13 +27,13 @@ func (sum *summary) tcp4(filter func(*Socket) bool) {
 		sock := toSocket(&s[i], snp)
 		sock.Protocol = syscall.IPPROTO_TCP
 		sock.Family = syscall.IPPROTO_IP
-		if filter(sock) {
+		if cnd.Match(sock) {
 			sum.append(sock)
 		}
 	}
 }
 
-func (sum *summary) tcp6(filter func(*Socket) bool) {
+func (sum *summary) tcp6(cnd *cond.Cond) {
 	tbl, err := GetTCP6Table2(true)
 	if err != nil {
 		sum.Err = err
@@ -49,13 +52,13 @@ func (sum *summary) tcp6(filter func(*Socket) bool) {
 		sock := toSocket(&s[i], snp)
 		sock.Protocol = syscall.IPPROTO_TCP
 		sock.Family = syscall.IPPROTO_IPV6
-		if filter(sock) {
+		if cnd.Match(sock) {
 			sum.append(sock)
 		}
 	}
 }
 
-func (sum *summary) tcp(filter func(*Socket) bool) {
-	sum.tcp4(filter)
-	sum.tcp6(filter)
+func (sum *summary) tcp(cnd *cond.Cond) {
+	sum.tcp4(cnd)
+	sum.tcp6(cnd)
 }

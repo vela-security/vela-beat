@@ -23,9 +23,9 @@ func (sock *Socket) Marshal(enc *kind.JsonEncoder) {
 	enc.Tab("")
 
 	enc.KV("state", sock.State)
-	enc.KV("local_ip", sock.LocalIP)
+	enc.KV("local_addr", sock.LocalIP)
 	enc.KV("local_port", sock.LocalPort)
-	enc.KV("remote_ip", sock.RemoteIP)
+	enc.KV("remote_addr", sock.RemoteIP)
 	enc.KV("remote_port", sock.RemotePort)
 	enc.KV("pid", sock.Pid)
 	enc.KV("process_name", sock.Process)

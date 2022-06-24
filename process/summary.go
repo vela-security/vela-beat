@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/elastic/gosigar"
+	cond "github.com/vela-security/vela-cond"
 	"github.com/vela-security/vela-public/auxlib"
 	"github.com/vela-security/vela-public/lua"
 )
@@ -157,7 +158,7 @@ func (sum *summary) ppid(match func(string) bool) {
 	})
 }
 
-func (sum *summary) view(match func(*Process) bool) {
+func (sum *summary) view(filter func(*Process) bool) {
 	list := sum.List()
 	n := len(list)
 	if n == 0 {
@@ -171,7 +172,29 @@ func (sum *summary) view(match func(*Process) bool) {
 			continue
 		}
 
-		if !match(pv) {
+		if !filter(pv) {
+			continue
+		}
+		sum.append(pv)
+	}
+
+}
+
+func (sum *summary) search(cnd *cond.Cond) {
+	list := sum.List()
+	n := len(list)
+	if n == 0 {
+		return
+	}
+
+	for i := 0; i < n; i++ {
+		pid := list[i]
+		pv, err := Pid(pid)
+		if err != nil {
+			continue
+		}
+
+		if !cnd.Match(pv) {
 			continue
 		}
 		sum.append(pv)

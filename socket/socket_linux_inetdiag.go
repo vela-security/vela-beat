@@ -53,7 +53,7 @@ var tcpStateNames = map[TCPState]string{
 	TCP_FIN_WAIT1:   "FIN-WAIT-1",
 	TCP_FIN_WAIT2:   "FIN-WAIT-2",
 	TCP_TIME_WAIT:   "TIME-WAIT",
-	TCP_CLOSE:       "UNCONN",
+	TCP_CLOSE:       "CLOSED",
 	TCP_CLOSE_WAIT:  "CLOSE-WAIT",
 	TCP_LAST_ACK:    "LAST-ACK",
 	TCP_LISTEN:      "LISTEN",
@@ -154,8 +154,8 @@ var (
 // buffer for reading from the socket whose size will be the length of a page
 // (usually 32k). Use NetlinkInetDiagWithBuf if you want to provide your own
 // buffer.
-func NetlinkInetDiag(request syscall.NetlinkMessage , handle func(*InetDiagMsg)) error {
-	return NetlinkInetDiagWithBuf(request, nil, nil , handle)
+func NetlinkInetDiag(request syscall.NetlinkMessage, handle func(*InetDiagMsg)) error {
+	return NetlinkInetDiagWithBuf(request, nil, nil, handle)
 }
 
 // Response messages.
@@ -228,7 +228,7 @@ func ipBytes(data [16]byte, af AddressFamily) []byte {
 // temporary buffer will be allocated for each invocation. The resp writer, if
 // non-nil, will receive a copy of all bytes read (this is useful for
 // debugging).
-func NetlinkInetDiagWithBuf(request syscall.NetlinkMessage, readBuf []byte, resp io.Writer , handle func(*InetDiagMsg) ) error {
+func NetlinkInetDiagWithBuf(request syscall.NetlinkMessage, readBuf []byte, resp io.Writer, handle func(*InetDiagMsg)) error {
 	s, err := syscall.Socket(syscall.AF_NETLINK, syscall.SOCK_RAW, syscall.NETLINK_INET_DIAG)
 	if err != nil {
 		return err
@@ -237,7 +237,7 @@ func NetlinkInetDiagWithBuf(request syscall.NetlinkMessage, readBuf []byte, resp
 
 	lsa := &syscall.SockaddrNetlink{Family: syscall.AF_NETLINK}
 	if err := syscall.Sendto(s, serialize(request), 0, lsa); err != nil {
-		return  err
+		return err
 	}
 
 	if len(readBuf) == 0 {

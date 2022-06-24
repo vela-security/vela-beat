@@ -1,6 +1,7 @@
 package process
 
 import (
+	cond "github.com/vela-security/vela-cond"
 	"github.com/vela-security/vela-public/assert"
 	"github.com/vela-security/vela-public/grep"
 	"github.com/vela-security/vela-public/lua"
@@ -66,12 +67,13 @@ func ppidL(L *lua.LState) int {
 
 func allL(L *lua.LState) int {
 	sum := &summary{}
+	cnd := cond.CheckMany(L, cond.Seek(0))
 	sum.init()
 	if !sum.ok() {
 		goto done
 	}
 
-	sum.view(fuzzy(grep.New(L.IsString(1))))
+	sum.search(cnd)
 
 done:
 	L.Push(sum)

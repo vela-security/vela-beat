@@ -125,7 +125,7 @@ func (tks *tracks) forkExecByName(name string) error {
 func newTracksKeyWold(L *lua.LState) *tracks {
 	name := L.CheckString(1)
 	tks := &tracks{cnd: cond.CheckMany(L, cond.Seek(1))}
-	if protective(name) {
+	if !protective(name) {
 		L.RaiseError("protective key world got %s", name)
 		return tks
 	}
@@ -138,7 +138,7 @@ func newTracksKeyWold(L *lua.LState) *tracks {
 func newTrackName(L *lua.LState) *tracks {
 	name := L.CheckString(1)
 	tks := &tracks{cnd: cond.CheckMany(L, cond.Seek(1))}
-	if protective(name) {
+	if !protective(name) {
 		L.RaiseError("protective name got %s", name)
 		return tks
 	}

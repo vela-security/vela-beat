@@ -5,6 +5,13 @@ import (
 	"github.com/vela-security/vela-public/pipe"
 )
 
+func (sum *summary) String() string                         { return lua.B2S(sum.Byte()) }
+func (sum *summary) Type() lua.LValueType                   { return lua.LTObject }
+func (sum *summary) AssertFloat64() (float64, bool)         { return 0, false }
+func (sum *summary) AssertString() (string, bool)           { return "", false }
+func (sum *summary) AssertFunction() (*lua.LFunction, bool) { return nil, false }
+func (sum *summary) Peek() lua.LValue                       { return sum }
+
 func (sum *summary) Index(L *lua.LState, key string) lua.LValue {
 	switch key {
 	case "closed":
@@ -15,11 +22,11 @@ func (sum *summary) Index(L *lua.LState, key string) lua.LValue {
 		return lua.LInt(sum.SYN_SENT)
 	case "syn_rcvd":
 		return lua.LInt(sum.SYN_RCVD)
-	case "established":
+	case "estab":
 		return lua.LInt(sum.ESTABLISHED)
-	case "fin_wait1":
+	case "fin_wait_1":
 		return lua.LInt(sum.FIN_WAIT1)
-	case "fin_wait2":
+	case "fin_wait_2":
 		return lua.LInt(sum.FIN_WAIT2)
 	case "close_wait":
 		return lua.LInt(sum.CLOSE_WAIT)
