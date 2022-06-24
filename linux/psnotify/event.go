@@ -4,18 +4,12 @@
 package psnotify
 
 import (
-	"github.com/vela-security/vela-public/lua"
 	"github.com/vela-security/vela-beat/process"
-)
-
-const (
-	FORKL = lua.LString("fork")
-	EXECL = lua.LString("exec")
-	EXITL = lua.LString("exit")
-	NULLL = lua.LString("null")
+	"github.com/vela-security/vela-public/kind"
 )
 
 type event struct {
+	state bool
 	eType uint32
 	ppid  int
 	pid   int
@@ -23,11 +17,51 @@ type event struct {
 }
 
 func newEv(ppid, pid int, et uint32) *event {
-	return &event{pid: pid, ppid: ppid, eType: et}
+	return &event{state: false, pid: pid, ppid: ppid, eType: et, proc: &process.Process{Pid: -1}}
 }
 
-func (ev *event) ToLValue() lua.LValue {
-	return lua.NewAnyData(ev)
+func (ev *event) eTypeToString() string {
+	switch ev.eType {
+	case PROC_EVENT_FORK:
+		return "fork"
+	case PROC_EVENT_EXEC:
+		return "exec"
+	case PROC_EVENT_EXIT:
+		return "exit"
+	default:
+		return "null"
+	}
+}
+
+func (ev *event) ps() *process.Process {
+	if ev.state {
+		return ev.proc
+	}
+
+	p, e := process.Pid(ev.pid)
+	ev.state = true
+	if e != nil {
+		xEnv.Infof("pid:%d ppid:%d event:%s got process fail %v", ev.pid, ev.ppid, ev.eTypeToString(), e)
+		return ev.proc
+	}
+	ev.proc = p
+	return ev.proc
+}
+
+func (ev *event) Byte() []byte {
+	enc := kind.NewJsonEncoder()
+	enc.Tab("")
+	enc.KV("type", ev.eTypeToString())
+	enc.KV("pid", ev.pid)
+	enc.KV("ppid", ev.ppid)
+	if ev.proc == nil {
+		enc.KV("proc", []byte("{}"))
+	} else {
+		enc.Raw("proc", ev.proc.Byte())
+	}
+	enc.End("}")
+
+	return enc.Bytes()
 }
 
 func (ev *event) Proc() *process.Process {
@@ -51,30 +85,21 @@ func (ev *event) Proc() *process.Process {
 	return proc
 }
 
-func (ev *event) Index(L *lua.LState, key string) lua.LValue {
-	switch key {
-	case "type":
-		switch ev.eType {
-		case PROC_EVENT_FORK:
-			return FORKL
-		case PROC_EVENT_EXEC:
-			return EXECL
-		case PROC_EVENT_EXIT:
-			return EXITL
-		default:
-			return NULLL
-		}
-		return lua.LInt(ev.eType)
-	case "pid":
-		return lua.LInt(ev.pid)
-	case "ppid":
-		return lua.LInt(ev.ppid)
-	case "proc":
-		if p := ev.Proc(); p == nil {
-			return lua.LNil
-		} else {
-			return lua.NewAnyData(p)
-		}
-	}
-	return lua.LNil
+func (ev *event) info() []byte {
+	enc := kind.NewJsonEncoder()
+	p := ev.ps()
+
+	enc.Tab("")
+	enc.KV("type", ev.eTypeToString())
+	enc.KV("pid", ev.pid)
+	enc.KV("ppid", ev.ppid)
+	enc.KV("gid", p.Pgid)
+	enc.KV("name", p.Name)
+	enc.KV("exe", p.Executable)
+	enc.KV("cmdline", p.Cmdline)
+	enc.KV("cwd", p.Cwd)
+	enc.KV("user", p.Username)
+	enc.KV("args", p.ArgsToString())
+	enc.End("}")
+	return enc.Bytes()
 }

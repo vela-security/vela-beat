@@ -4,6 +4,7 @@
 package psnotify
 
 import (
+	cond "github.com/vela-security/vela-cond"
 	"github.com/vela-security/vela-public/auxlib"
 	"github.com/vela-security/vela-public/lua"
 	"github.com/vela-security/vela-public/pipe"
@@ -13,6 +14,7 @@ type config struct {
 	name  string
 	pipe  *pipe.Px
 	co    *lua.LState
+	cnd   *cond.LCond
 	watch *Watcher
 }
 
@@ -46,7 +48,8 @@ func (cfg *config) NewIndex(L *lua.LState, key string, val lua.LValue) {
 	switch key {
 	case "name":
 		cfg.name = val.String()
-
+	case "cond":
+		cfg.cnd = cond.LValue(L, val)
 	default:
 		//todo
 	}

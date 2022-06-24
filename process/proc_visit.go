@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/elastic/gosigar"
+	"strings"
 )
 
 func (proc *Process) LookupState() error {
@@ -28,4 +29,13 @@ func (proc *Process) Lookup() error {
 
 func (proc *Process) IsNull() bool {
 	return proc == nil || proc.Pid == -1
+}
+
+func (proc *Process) ArgsToString() string {
+	if len(proc.Args) == 0 {
+		return ""
+	}
+
+	return strings.Join(proc.Args, " ")
+
 }

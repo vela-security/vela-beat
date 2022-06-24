@@ -34,6 +34,15 @@ func (nt *notify) E(er error) {
 	xEnv.Errorf("%s pipe vela-event %v", nt.Name(), er)
 }
 
+func (nt *notify) handle(ev *event) {
+	cnd := nt.cfg.cnd
+	if cnd != nil {
+		cnd.Match(ev, nt.cfg.co)
+	}
+
+	nt.cfg.pipe.Do(ev, nt.cfg.co, nt.E)
+}
+
 func (nt *notify) accept() {
 	wer := nt.cfg.watch
 	defer func() {
@@ -44,16 +53,16 @@ func (nt *notify) accept() {
 		select {
 
 		case ev := <-wer.Fork:
-			nt.cfg.pipe.Do(newEv(ev.ParentPid, ev.ChildPid, PROC_EVENT_FORK), nt.cfg.co, nt.E)
+			nt.handle(newEv(ev.ParentPid, ev.ChildPid, PROC_EVENT_FORK))
 
 		case ev := <-wer.Exec:
-			nt.cfg.pipe.Do(newEv(-1, ev.Pid, PROC_EVENT_EXEC), nt.cfg.co, nt.E)
+			nt.handle(newEv(-1, ev.Pid, PROC_EVENT_EXEC))
 
 		case ev := <-wer.Exit:
-			nt.cfg.pipe.Do(newEv(-1, ev.Pid, PROC_EVENT_EXIT), nt.cfg.co, nt.E)
+			nt.handle(newEv(-1, ev.Pid, PROC_EVENT_EXIT))
 
 		case ev := <-wer.Error:
-			xEnv.Errorf("%s psnotify got error %v", nt.Name(), ev.Error())
+			xEnv.Infof("%s linux netlink notify got error %v", nt.Name(), ev.Error())
 
 		case <-nt.tom.Dying():
 			return

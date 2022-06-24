@@ -4,6 +4,7 @@
 package psnotify
 
 import (
+	cond "github.com/vela-security/vela-cond"
 	"github.com/vela-security/vela-public/lua"
 )
 
@@ -39,6 +40,11 @@ func (nt *notify) allL(L *lua.LState) int {
 	return 0
 }
 
+func (nt *notify) condL(L *lua.LState) int {
+	nt.cfg.cnd = cond.Check(L, 1)
+	return 0
+}
+
 func (nt *notify) Index(L *lua.LState, key string) lua.LValue {
 	switch key {
 
@@ -51,14 +57,18 @@ func (nt *notify) Index(L *lua.LState, key string) lua.LValue {
 	case "EXIT":
 		return lua.LInt(PROC_EVENT_EXIT)
 
+	case "all":
+		return lua.NewFunction(nt.allL)
+
 	case "pipe":
 		return lua.NewFunction(nt.pipeL)
+
+	case "cond":
+		return lua.NewFunction(nt.condL)
 
 	case "start":
 		return lua.NewFunction(nt.startL)
 
-	case "all":
-		return lua.NewFunction(nt.allL)
 	}
 
 	return lua.LNil
