@@ -1,6 +1,8 @@
 package process
 
-import "github.com/vela-security/vela-public/assert"
+import (
+	opcode "github.com/vela-security/vela-opcode"
+)
 
 type report struct {
 	Deletes []int      `json:"deletes"`
@@ -28,7 +30,7 @@ func (r *report) do() {
 	if r.Len() == 0 {
 		return
 	}
-	op := assert.OpProcess
+	op := opcode.OpProcessDiff
 	err := xEnv.TnlSend(op, r)
 	if err != nil {
 		xEnv.Errorf("tunnel send push opcode:%d fail %v", op, err)

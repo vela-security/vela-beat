@@ -3,6 +3,7 @@ package process
 import (
 	"fmt"
 	audit "github.com/vela-security/vela-audit"
+	opcode "github.com/vela-security/vela-opcode"
 	"github.com/vela-security/vela-public/assert"
 	"github.com/vela-security/vela-public/auxlib"
 	"github.com/vela-security/vela-public/lua"
@@ -94,7 +95,7 @@ func (snt *snapshot) withProcess(ps []*Process) {
 		return
 	}
 
-	if e := xEnv.TnlSend(assert.OpProcessSnapshot, ps); e != nil {
+	if e := xEnv.TnlSend(opcode.OpProcessFull, ps); e != nil {
 		xEnv.Errorf("process snapshot sync push fail %v", e)
 	}
 

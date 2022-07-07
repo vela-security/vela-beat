@@ -28,7 +28,7 @@ func newSysProcAttr() *syscall.SysProcAttr {
 	}
 }
 
-func trim(line string, sec *section) bool {
+func trim(line string, sec *Section) bool {
 	m := re.FindStringSubmatch(line)
 	if len(m) < 3 {
 		return false
@@ -51,7 +51,7 @@ func (tk *track) verbose(out io.ReadCloser) {
 	scanner := bufio.NewScanner(out)
 	for scanner.Scan() {
 		line := scanner.Text()
-		sec := section{}
+		sec := Section{}
 		if !trim(line, &sec) {
 			goto next
 		} else {
@@ -105,6 +105,6 @@ func (tk *track) Pid() {
 		return
 	}
 
-	cmd := tk.Command("-p", tk.pid2str(), "-nobanner")
+	cmd := tk.Command("/accepteula", "-p", tk.pid2str(), "-nobanner")
 	tk.forkExec(cmd, tk.verbose)
 }

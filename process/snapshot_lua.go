@@ -60,11 +60,6 @@ func (snt *snapshot) pollL(L *lua.LState) int {
 	return 0
 }
 
-func (snt *snapshot) reportL(L *lua.LState) int {
-	snt.enable = true
-	return 0
-}
-
 func (snt *snapshot) syncL(L *lua.LState) int {
 	snt.sync()
 	return 0

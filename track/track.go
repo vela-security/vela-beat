@@ -12,7 +12,7 @@ type track struct {
 	pid   int32
 	exe   string
 	total int32
-	data  []section
+	data  []Section
 	cnd   *cond.Cond
 	cause *catch.Cause
 }
@@ -36,10 +36,25 @@ func (tk *track) ok() bool {
 	return tk.cause.Len() == 0
 }
 
-func (tk *track) append(s section) {
+func (tk *track) append(s Section) {
 	if tk.cnd.Match(&s) {
 		tk.data = append(tk.data, s)
 	}
+}
+
+func (tk *track) Visit(handle func(s Section)) {
+	n := len(tk.data)
+	if n == 0 {
+		return
+	}
+
+	for i := 0; i < n; i++ {
+		handle(tk.data[i])
+	}
+}
+
+func (tk *track) Reset() {
+	tk.data = nil
 }
 
 func (tk *track) incr() {

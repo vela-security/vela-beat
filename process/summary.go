@@ -200,3 +200,15 @@ func (sum *summary) search(cnd *cond.Cond) {
 		sum.append(pv)
 	}
 }
+
+func By(cnd *cond.Cond) *summary {
+	sum := &summary{}
+	sum.init()
+	if !sum.ok() {
+		xEnv.Infof("not found process summary %v", sum.Error)
+		return sum
+	}
+
+	sum.search(cnd)
+	return sum
+}

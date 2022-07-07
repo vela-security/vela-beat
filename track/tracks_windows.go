@@ -12,7 +12,7 @@ import (
 
 var re2 = regexp.MustCompile(`(.*?)\s+pid\:\s+(\d{1,5})\s+type\:\s+(\w+)\s+[A-Z0-9]+\:\s+(.*)\s$`)
 
-func trim2(line string, s *section) bool { // trim name output
+func trim2(line string, s *Section) bool { // trim name output
 	m := re2.FindStringSubmatch(line)
 	if len(m) != 5 {
 		return false
@@ -45,7 +45,7 @@ func (tks *tracks) dumpKw(out io.ReadCloser) {
 	scanner := bufio.NewScanner(out)
 	for scanner.Scan() {
 		line := scanner.Text()
-		sec := section{}
+		sec := Section{}
 		if !trim2(line, &sec) {
 			goto next
 		}
@@ -81,7 +81,7 @@ func (tks *tracks) dumpByName(out io.ReadCloser) {
 			pid, name, _ = trimUser(line)
 
 		default:
-			sec := section{}
+			sec := Section{}
 			if !trim(line, &sec) {
 				continue
 			}
@@ -106,7 +106,7 @@ func (tks *tracks) forkExecByKw(keywold string) error {
 	}
 
 	tk := newTrack(withCnd(tks.cnd))
-	cmd := tk.Command(keywold, "-nobanner")
+	cmd := tk.Command("/accepteula", keywold, "-nobanner")
 	tk.forkExec(cmd, tks.dumpKw)
 	return nil
 }
@@ -117,7 +117,7 @@ func (tks *tracks) forkExecByName(name string) error {
 	}
 
 	tk := newTrack(withCnd(tks.cnd))
-	cmd := tk.Command("-p", name, "-nobanner")
+	cmd := tk.Command("/accepteula", "-p", name, "-nobanner")
 	tk.forkExec(cmd, tks.dumpByName)
 	return nil
 }
@@ -132,6 +132,16 @@ func newTracksKeyWold(L *lua.LState) *tracks {
 
 	tks.forkExecByKw(name)
 
+	return tks
+}
+
+func newTrackByName(name string, cnd *cond.Cond) *tracks {
+	tks := &tracks{cnd: cnd}
+	if !protective(name) {
+		return tks
+	}
+
+	tks.forkExecByName(name)
 	return tks
 }
 

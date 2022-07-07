@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-type section struct {
+type Section struct {
 	Pid   int32
 	User  string
 	Exe   string
@@ -17,14 +17,14 @@ type section struct {
 	Value string
 }
 
-func (s *section) String() string                         { return lua.B2S(s.Byte()) }
-func (s *section) Type() lua.LValueType                   { return lua.LTObject }
-func (s *section) AssertFloat64() (float64, bool)         { return 0, false }
-func (s *section) AssertString() (string, bool)           { return "", false }
-func (s *section) AssertFunction() (*lua.LFunction, bool) { return nil, false }
-func (s *section) Peek() lua.LValue                       { return s }
+func (s *Section) String() string                         { return lua.B2S(s.Byte()) }
+func (s *Section) Type() lua.LValueType                   { return lua.LTObject }
+func (s *Section) AssertFloat64() (float64, bool)         { return 0, false }
+func (s *Section) AssertString() (string, bool)           { return "", false }
+func (s *Section) AssertFunction() (*lua.LFunction, bool) { return nil, false }
+func (s *Section) Peek() lua.LValue                       { return s }
 
-func (s *section) Byte() []byte {
+func (s *Section) Byte() []byte {
 	enc := kind.NewJsonEncoder()
 	enc.Tab("")
 	enc.KV("pid", s.Pid)
@@ -36,14 +36,14 @@ func (s *section) Byte() []byte {
 	return enc.Bytes()
 }
 
-func (s *section) Name() string {
+func (s *Section) Name() string {
 	if s.Exe == "" {
 		return ""
 	}
 	return filepath.Base(s.Exe)
 }
 
-func (s *section) Raw() string {
+func (s *Section) Raw() string {
 	var buf bytes.Buffer
 	buf.WriteString(strconv.Itoa(int(s.Pid)))
 	buf.WriteByte(' ')
@@ -57,7 +57,7 @@ func (s *section) Raw() string {
 	return buf.String()
 }
 
-func (s *section) Index(L *lua.LState, key string) lua.LValue {
+func (s *Section) Index(L *lua.LState, key string) lua.LValue {
 	switch key {
 	case "type":
 		return lua.S2L(s.Typ)

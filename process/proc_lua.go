@@ -51,9 +51,26 @@ func (proc *Process) Index(L *lua.LState, key string) lua.LValue {
 	case "share":
 		return lua.LNumber(proc.Share)
 
+	case "username":
+		return lua.S2L(proc.Username)
+
 	case "stime":
 		return lua.S2L(proc.StartTime)
 	}
 
 	return lua.LNil
+}
+
+func CheckById(L *lua.LState, idx int) *Process {
+	v := L.Get(idx)
+	if v.Type() != lua.LTObject {
+		return nil
+	}
+
+	p, ok := v.(*Process)
+	if ok {
+		return p
+	}
+
+	return nil
 }
